@@ -16,9 +16,9 @@ module Exporter
         output = %x(docker ps -a --format '{{.Names}}').split("\n")
         docker["containers"].each do |container|
           unless output.include? container
-            msg << "r_docker_container_status{name=#{container},status_name='NOT_FOUND',exit_code=666} 0
-r_docker_container_uptime{name=#{container}} 0
-r_docker_container_downtime{name=#{container}} 0
+            msg << "r_docker_container_status{name=\"#{container}\", status_name=\"NOT_FOUND\", exit_code=\"666\"} 0
+r_docker_container_uptime{name=\"#{container}\"} 0
+r_docker_container_downtime{name=\"#{container}\"} 0
 "
             next
           end
@@ -31,9 +31,10 @@ r_docker_container_downtime{name=#{container}} 0
           downtime = (status == 10)? 0 : (Time.now - DateTime.parse(state['FinishedAt']).to_time).to_i
 
           msg <<
-            "r_docker_container_status{name=#{container},status_name=#{state['Status']},exit_code=#{state['ExitCode']}} #{status}
-r_docker_container_uptime{name=#{container}} #{uptime}
-r_docker_container_downtime{name=#{container}} #{downtime}
+            "
+r_docker_container_status{name=\"#{container}\",status_name=\"#{state['Status']}\",exit_code=\"#{state['ExitCode']}\"} #{status}
+r_docker_container_uptime{name=\"#{container}\"} #{uptime}
+r_docker_container_downtime{name=\"#{container}\"} #{downtime}
 "
         end
 
