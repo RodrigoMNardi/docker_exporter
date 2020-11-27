@@ -14,19 +14,26 @@ module Exporter
         return msg.string if docker.nil? or docker.empty?
 
         output = %x(docker ps -a --format '{{.Names}}').split("\n")
-        output.each do |entry|
-          next unless docker["containers"].include? entry
+        docker["containers"].each do |container|
+          unless output.include? container
+            msg << "container_status{name=#{container},status_name='NOT_FOUND',exit_code=666} 0
+container_uptime{name=#{container}} 0
+container_downtime{name=#{container}} 0
+"
+            next
+          end
 
-          docker_inspect = YAML.load(%x(docker inspect #{entry}))
+          docker_inspect = YAML.load(%x(docker inspect #{container}))
           state          = docker_inspect.first["State"]
 
           status   = (state['Status'].downcase == 'running')? 10 : -1
           uptime   = (status == 10)? (Time.now - DateTime.parse(state['StartedAt']).to_time).to_i : 0
           downtime = (status == 10)? 0 : (Time.now - DateTime.parse(state['FinishedAt']).to_time).to_i
 
-          msg << "container_status{name=#{entry},status_name=#{state['Status']},exit_code=#{state['ExitCode']}} #{status}
-container_uptime{name=#{entry}} #{uptime}
-container_downtime{name=#{entry}} #{downtime}
+          msg <<
+            "container_status{name=#{container},status_name=#{state['Status']},exit_code=#{state['ExitCode']}} #{status}
+container_uptime{name=#{container}} #{uptime}
+container_downtime{name=#{container}} #{downtime}
 "
         end
 
